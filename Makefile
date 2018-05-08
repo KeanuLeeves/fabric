@@ -244,8 +244,13 @@ build/docker/gotools/bin/protoc-gen-go: build/docker/gotools
 
 build/docker/gotools: gotools/Makefile
 	@mkdir -p $@/bin $@/obj
+	@cd $(TOOLS_SRC)/lint || (mkdir -p $(TOOLS_SRC) && cd $(TOOLS_SRC) && git clone https://github.com/golang/lint.git)
+	$(eval TOOLS_SRC = $(dir $(abspath $<))/build/gopath/src/golang.org/x)
+	@$(eval TOOLS_DST = /opt/gotools/obj/gopath/src/golang.org/x)
+	@cd $(TOOLS_SRC)/tools || (mkdir -p $(TOOLS_SRC) && cd $(TOOLS_SRC) && git clone https://github.com/golang/tools.git)
 	@$(DRUN) \
 		-v $(abspath $@):/opt/gotools \
+		-u root -v $(TOOLS_SRC):$(TOOLS_DST) \
 		-w /opt/gopath/src/$(PKGNAME)/gotools \
 		$(BASE_DOCKER_NS)/fabric-baseimage:$(BASE_DOCKER_TAG) \
 		make install BINDIR=/opt/gotools/bin OBJDIR=/opt/gotools/obj
@@ -420,7 +425,7 @@ docker-clean: $(patsubst %,%-docker-clean, $(IMAGES))
 
 .PHONY: clean
 clean: docker-clean unit-test-clean release-clean
-	-@rm -rf build ||:
+	-@sudo rm -rf build ||:
 
 .PHONY: clean-all
 clean-all: clean gotools-clean dist-clean
